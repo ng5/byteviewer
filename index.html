@@ -180,6 +180,83 @@
             margin-top: 5px;
         }
 
+        .byte-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            min-height: 40px;
+            align-items: center;
+        }
+
+        .byte-box {
+            background: #3a3a3a;
+            color: #e0e0e0;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            display: inline-block;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .divider-slot {
+            width: 12px;
+            height: 30px;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .divider-slot:hover::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 30px;
+            background: #808080;
+            opacity: 0.5;
+        }
+
+        .divider-slot.active {
+            width: 4px;
+            background: #ff4444;
+            margin: 0 4px;
+            box-shadow: 0 0 4px rgba(255, 68, 68, 0.5);
+        }
+
+        .divider-slot.active:hover {
+            background: #ff6b6b;
+            box-shadow: 0 0 6px rgba(255, 107, 107, 0.7);
+        }
+
+        .divider-marker {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .segment-container {
+            margin-bottom: 20px;
+        }
+
+        .segment-header {
+            color: #b0b0b0;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .segments-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 1.8em;
@@ -254,43 +331,11 @@
                 <input type="text" id="byteInput" placeholder="e.g., 42 3F 80 00 or 423F8000 or 0x42, 0x3F, 0x80">
                 <div class="error" id="byteError"></div>
             </div>
-            <div class="output-item" style="margin-bottom: 15px;">
-                <label>Byte Count:</label>
-                <div class="value" id="byteCount">-</div>
+            <div class="output-item" style="margin-bottom: 10px;">
+                <label>Byte Count: <span id="byteCount">-</span> <span class="divider-marker">|</span> Click between bytes to add/remove dividers <span class="divider-marker">|</span></label>
             </div>
-            <div class="endian-grid">
-                <table class="endian-table">
-                    <thead>
-                        <tr>
-                            <th>Interpretation</th>
-                            <th>Little Endian</th>
-                            <th>Big Endian</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="label-col">Signed Integer</td>
-                            <td class="value-col" id="signedLE">-</td>
-                            <td class="value-col" id="signedBE">-</td>
-                        </tr>
-                        <tr>
-                            <td class="label-col">Unsigned Integer</td>
-                            <td class="value-col" id="unsignedLE">-</td>
-                            <td class="value-col" id="unsignedBE">-</td>
-                        </tr>
-                        <tr>
-                            <td class="label-col">Float32</td>
-                            <td class="value-col" id="float32DecLE">-</td>
-                            <td class="value-col" id="float32DecBE">-</td>
-                        </tr>
-                        <tr>
-                            <td class="label-col">Float64</td>
-                            <td class="value-col" id="float64DecLE">-</td>
-                            <td class="value-col" id="float64DecBE">-</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div id="byteDisplay" class="byte-display"></div>
+            <div id="segmentsOutput" class="segments-wrapper"></div>
         </div>
     </div>
 
@@ -398,6 +443,11 @@
         const byteInput = document.getElementById('byteInput');
         const byteCount = document.getElementById('byteCount');
         const byteError = document.getElementById('byteError');
+        const byteDisplay = document.getElementById('byteDisplay');
+        const segmentsOutput = document.getElementById('segmentsOutput');
+
+        let currentBytes = [];
+        let dividers = new Set(); // Positions where dividers are placed
 
         function parseByteString(str) {
             // Remove 0x prefixes and whitespace
@@ -428,7 +478,7 @@
 
         function bytesToDecimal(bytes, interpretation, isLittleEndian) {
             if (bytes.length === 0) {
-                return null;
+                return '-';
             }
 
             // Create buffer and view
@@ -497,50 +547,163 @@
             return result;
         }
 
+        function toggleDivider(position) {
+            if (dividers.has(position)) {
+                dividers.delete(position);
+            } else {
+                dividers.add(position);
+            }
+            renderByteDisplay();
+            renderSegments();
+        }
+
+        function renderByteDisplay() {
+            byteDisplay.innerHTML = '';
+
+            if (currentBytes.length === 0) {
+                return;
+            }
+
+            for (let i = 0; i < currentBytes.length; i++) {
+                // Add byte box
+                const byteBox = document.createElement('div');
+                byteBox.className = 'byte-box';
+                byteBox.textContent = currentBytes[i].toString(16).toUpperCase().padStart(2, '0');
+                byteDisplay.appendChild(byteBox);
+
+                // Add divider slot (except after last byte)
+                if (i < currentBytes.length - 1) {
+                    const dividerSlot = document.createElement('div');
+                    dividerSlot.className = 'divider-slot';
+                    if (dividers.has(i + 1)) {
+                        dividerSlot.classList.add('active');
+                    }
+                    dividerSlot.addEventListener('click', () => toggleDivider(i + 1));
+                    byteDisplay.appendChild(dividerSlot);
+                }
+            }
+        }
+
+        function getSegments() {
+            if (currentBytes.length === 0) {
+                return [];
+            }
+
+            const sortedDividers = Array.from(dividers).sort((a, b) => a - b);
+            const segments = [];
+            let start = 0;
+
+            for (const dividerPos of sortedDividers) {
+                segments.push(currentBytes.slice(start, dividerPos));
+                start = dividerPos;
+            }
+            segments.push(currentBytes.slice(start));
+
+            return segments;
+        }
+
+        function createSegmentTable(segmentBytes, segmentIndex) {
+            const hexString = segmentBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+
+            const container = document.createElement('div');
+            container.className = 'segment-container';
+
+            const header = document.createElement('div');
+            header.className = 'segment-header';
+            header.textContent = `Segment ${segmentIndex + 1}: ${hexString} (${segmentBytes.length} byte${segmentBytes.length !== 1 ? 's' : ''})`;
+            container.appendChild(header);
+
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'endian-grid';
+
+            const table = document.createElement('table');
+            table.className = 'endian-table';
+
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Interpretation</th>
+                        <th>Little Endian</th>
+                        <th>Big Endian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="label-col">Signed Integer</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'signed', true)}</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'signed', false)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Unsigned Integer</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'unsigned', true)}</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'unsigned', false)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Float32</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'float32', true)}</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'float32', false)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Float64</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'float64', true)}</td>
+                        <td class="value-col">${bytesToDecimal(segmentBytes, 'float64', false)}</td>
+                    </tr>
+                </tbody>
+            `;
+
+            tableWrapper.appendChild(table);
+            container.appendChild(tableWrapper);
+
+            return container;
+        }
+
+        function renderSegments() {
+            segmentsOutput.innerHTML = '';
+
+            const segments = getSegments();
+
+            if (segments.length === 0) {
+                return;
+            }
+
+            segments.forEach((segment, index) => {
+                if (segment.length > 0) {
+                    segmentsOutput.appendChild(createSegmentTable(segment, index));
+                }
+            });
+        }
+
         function updateByteConversion() {
             const value = byteInput.value.trim();
 
-            const elements = {
-                signedLE: document.getElementById('signedLE'),
-                signedBE: document.getElementById('signedBE'),
-                unsignedLE: document.getElementById('unsignedLE'),
-                unsignedBE: document.getElementById('unsignedBE'),
-                float32DecLE: document.getElementById('float32DecLE'),
-                float32DecBE: document.getElementById('float32DecBE'),
-                float64DecLE: document.getElementById('float64DecLE'),
-                float64DecBE: document.getElementById('float64DecBE')
-            };
-
             if (value === '') {
-                Object.values(elements).forEach(el => el.textContent = '-');
                 byteCount.textContent = '-';
                 byteError.textContent = '';
+                currentBytes = [];
+                dividers.clear();
+                byteDisplay.innerHTML = '';
+                segmentsOutput.innerHTML = '';
                 return;
             }
 
             try {
-                const bytes = parseByteString(value);
+                currentBytes = parseByteString(value);
                 byteError.textContent = '';
+                byteCount.textContent = currentBytes.length + ' byte' + (currentBytes.length !== 1 ? 's' : '');
 
-                byteCount.textContent = bytes.length + ' byte' + (bytes.length !== 1 ? 's' : '');
+                // Remove dividers that are out of bounds
+                dividers = new Set([...dividers].filter(d => d < currentBytes.length));
 
-                // Update all interpretations for both endianness
-                elements.signedLE.textContent = bytesToDecimal(bytes, 'signed', true);
-                elements.signedBE.textContent = bytesToDecimal(bytes, 'signed', false);
-
-                elements.unsignedLE.textContent = bytesToDecimal(bytes, 'unsigned', true);
-                elements.unsignedBE.textContent = bytesToDecimal(bytes, 'unsigned', false);
-
-                elements.float32DecLE.textContent = bytesToDecimal(bytes, 'float32', true);
-                elements.float32DecBE.textContent = bytesToDecimal(bytes, 'float32', false);
-
-                elements.float64DecLE.textContent = bytesToDecimal(bytes, 'float64', true);
-                elements.float64DecBE.textContent = bytesToDecimal(bytes, 'float64', false);
+                renderByteDisplay();
+                renderSegments();
 
             } catch (error) {
-                Object.values(elements).forEach(el => el.textContent = 'Error');
                 byteCount.textContent = '-';
                 byteError.textContent = error.message;
+                currentBytes = [];
+                dividers.clear();
+                byteDisplay.innerHTML = '';
+                segmentsOutput.innerHTML = '';
             }
         }
 
