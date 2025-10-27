@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +44,7 @@
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .input-group {
@@ -177,30 +178,6 @@
             font-size: 0.85em;
         }
 
-        .examples {
-            background: #1a1a1a;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 0.85em;
-        }
-
-        .examples-title {
-            color: #b0b0b0;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .example-item {
-            color: #909090;
-            margin: 3px 0;
-            font-family: 'Courier New', monospace;
-        }
-
-        .example-code {
-            color: #c0c0c0;
-        }
-
         .intermediate-steps {
             margin-top: 5px;
             padding-top: 5px;
@@ -257,12 +234,39 @@
             color: #606060;
             margin-right: 5px;
         }
+
+        .width-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+            font-size: 0.85em;
+            font-weight: normal;
+        }
+
+        .width-option {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .width-option input[type="radio"] {
+            cursor: pointer;
+        }
+
+        .width-option label {
+            cursor: pointer;
+            margin: 0;
+            color: #d0d0d0;
+            font-weight: normal;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Bit Fiddling Playground</h1>
-        <div class="subtitle">Learn Hacker's Delight bit manipulation tricks</div>
+        <div class="subtitle" style="font-size: 0.75em; color: #808080;">Note: Some techniques were historically
+            patented but are now expired/public domain. Check current patent status for commercial use.</div>
 
         <div class="section">
             <div class="input-group">
@@ -270,25 +274,34 @@
                 <input type="number" id="numberInput" placeholder="e.g., 10" value="42">
             </div>
 
-            <div class="examples">
-                <div class="examples-title">Example Expressions:</div>
-                <div class="example-item"><span class="example-code">x << 1</span> - Left shift (multiply by 2)</div>
-                <div class="example-item"><span class="example-code">x >> 1</span> - Right shift (divide by 2)</div>
-                <div class="example-item"><span class="example-code">x & 0xFF</span> - Mask lower 8 bits</div>
-                <div class="example-item"><span class="example-code">x | 0x80</span> - Set bit 7</div>
-                <div class="example-item"><span class="example-code">x ^ 0xFF</span> - XOR with 0xFF</div>
-                <div class="example-item"><span class="example-code">~x</span> - Bitwise NOT</div>
-                <div class="example-item"><span class="example-code">(x & (x - 1))</span> - Clear lowest set bit</div>
-                <div class="example-item"><span class="example-code">(x & -x)</span> - Isolate lowest set bit</div>
-            </div>
-
             <table class="expressions-table">
                 <thead>
                     <tr>
-                        <th style="width: 35%;">Expression</th>
-                        <th style="width: 47%;">64-bit Binary Result (Little Endian)</th>
-                        <th style="width: 15%;">Decimal Result</th>
-                        <th style="width: 3%;"></th>
+                        <th style="width: 18%;">Description</th>
+                        <th style="width: 30%;">Expression</th>
+                        <th style="width: 40%;">
+                            <div>Binary Result (Little Endian)</div>
+                            <div class="width-selector">
+                                <div class="width-option">
+                                    <input type="radio" id="width8" name="bitWidth" value="8">
+                                    <label for="width8">8-bit</label>
+                                </div>
+                                <div class="width-option">
+                                    <input type="radio" id="width16" name="bitWidth" value="16">
+                                    <label for="width16">16-bit</label>
+                                </div>
+                                <div class="width-option">
+                                    <input type="radio" id="width32" name="bitWidth" value="32">
+                                    <label for="width32">32-bit</label>
+                                </div>
+                                <div class="width-option">
+                                    <input type="radio" id="width64" name="bitWidth" value="64" checked>
+                                    <label for="width64">64-bit</label>
+                                </div>
+                            </div>
+                        </th>
+                        <th style="width: 10%;">Decimal Result</th>
+                        <th style="width: 2%;"></th>
                     </tr>
                 </thead>
                 <tbody id="expressionsBody">
@@ -296,7 +309,7 @@
             </table>
 
             <div class="controls">
-                <button class="btn btn-add" onclick="addRow()">+ Add Expression</button>
+                <button class="btn btn-add" onclick="addRow('', '')">+ Add Expression</button>
             </div>
         </div>
     </div>
@@ -306,34 +319,63 @@
         const expressionsBody = document.getElementById('expressionsBody');
 
         let rowCounter = 0;
+        let currentBitWidth = 64; // Default to 64-bit
 
-        function formatBinary64(num) {
-            // Convert to 64-bit representation
+        function determineBitWidth(num) {
+            // Determine the minimum bit width needed (8, 16, 32, or 64)
+            const absNum = Math.abs(num);
+
+            if (absNum <= 0x7F && num >= -0x80) return 8;        // Fits in 8 bits
+            if (absNum <= 0x7FFF && num >= -0x8000) return 16;   // Fits in 16 bits
+            if (absNum <= 0x7FFFFFFF && num >= -0x80000000) return 32; // Fits in 32 bits
+            return 64; // Needs 64 bits
+        }
+
+        function checkFitsInWidth(num, width) {
+            // Check if a number fits in the specified bit width (signed)
+            const bigNum = BigInt(num);
+            const maxVal = (1n << BigInt(width - 1)) - 1n;  // Max positive value
+            const minVal = -(1n << BigInt(width - 1));       // Min negative value
+
+            return bigNum >= minVal && bigNum <= maxVal;
+        }
+
+        function formatBinary(num, width = 64) {
+            // Check if number fits in the specified width
+            if (!checkFitsInWidth(num, width)) {
+                return { error: true, message: 'Insufficient width' };
+            }
+
+            // Convert to binary representation with specified width
             let binary;
 
             if (num < 0) {
                 // For negative numbers, use two's complement
-                // Convert to unsigned 64-bit
                 const bigNum = BigInt(num);
-                const mask = (1n << 64n) - 1n;
-                binary = (bigNum & mask).toString(2).padStart(64, '0');
+                const mask = (1n << BigInt(width)) - 1n;
+                binary = (bigNum & mask).toString(2).padStart(width, '0');
             } else {
-                binary = BigInt(num).toString(2).padStart(64, '0');
+                binary = BigInt(num).toString(2).padStart(width, '0');
             }
 
             // Split into groups of 8 for readability
             let formatted = '';
-            for (let i = 0; i < 64; i += 8) {
+            for (let i = 0; i < width; i += 8) {
                 formatted += `<span class="binary-group">${binary.substring(i, i + 8)}</span>`;
             }
 
-            return formatted;
+            return { error: false, value: formatted };
+        }
+
+        // Keep old function name for compatibility but use new one
+        function formatBinary64(num) {
+            return formatBinary(num, currentBitWidth);
         }
 
         function evaluateExpression(expr, x) {
             try {
-                // Sanitize expression - allow only safe characters including hex (a-f)
-                if (!/^[x0-9a-fA-F+\-*\/%&|^~()<>\s]+$/.test(expr)) {
+                // Sanitize expression - allow only safe characters including hex (a-f) and ternary operator (? :)
+                if (!/^[x0-9a-fA-F+\-*\/%&|^~()<>\s?:]+$/.test(expr)) {
                     return { error: 'Invalid characters in expression' };
                 }
 
@@ -448,23 +490,27 @@
         }
 
         function formatBinaryCompact(num) {
-            // Compact binary for intermediate steps - show only 32 bits grouped by 4
+            // Compact binary for intermediate steps - use current width but group by 4
+
+            // Check if number fits in the specified width
+            if (!checkFitsInWidth(num, currentBitWidth)) {
+                return 'Width Error';
+            }
+
             let binary;
-            const absNum = Math.abs(Number(num));
 
             if (num < 0) {
                 const bigNum = BigInt(num);
-                const mask = (1n << 64n) - 1n;
-                binary = (bigNum & mask).toString(2).padStart(64, '0');
+                const mask = (1n << BigInt(currentBitWidth)) - 1n;
+                binary = (bigNum & mask).toString(2).padStart(currentBitWidth, '0');
             } else {
-                binary = BigInt(num).toString(2).padStart(64, '0');
+                binary = BigInt(num).toString(2).padStart(currentBitWidth, '0');
             }
 
-            // Show last 32 bits grouped by 4 for readability
-            const last32 = binary.substring(32);
+            // Group by 4 for readability
             let formatted = '';
-            for (let i = 0; i < 32; i += 4) {
-                formatted += last32.substring(i, i + 4) + ' ';
+            for (let i = 0; i < binary.length; i += 4) {
+                formatted += binary.substring(i, i + 4) + ' ';
             }
 
             return formatted.trim();
@@ -492,8 +538,18 @@
             } else {
                 const value = typeof result.value === 'bigint' ? result.value : BigInt(result.value);
 
+                // Format binary - check for width error
+                const binaryResult = formatBinary64(Number(value));
+
+                if (binaryResult.error) {
+                    // Width error - display in red and clear decimal
+                    binaryCell.innerHTML = `<span class="error-cell">${binaryResult.message}</span>`;
+                    decimalCell.innerHTML = '<span style="color: #606060;">-</span>';
+                    return;
+                }
+
                 // Main result
-                let html = formatBinary64(Number(value));
+                let html = binaryResult.value;
 
                 // Add intermediate steps if expression is complex
                 if (expr !== 'x' && (expr.includes('(') || expr.split(/[&|^~<>]/).length > 2)) {
@@ -508,7 +564,7 @@
                         steps.forEach((step, idx) => {
                             const stepValue = typeof step.value === 'bigint' ? step.value : BigInt(step.value);
                             const label = step.description === 'input' ? '→' :
-                                        step.description === 'final' ? '=' : '→';
+                                step.description === 'final' ? '=' : '→';
 
                             html += `<div class="step-row">
                                 <span class="step-arrow">${label}</span>
@@ -540,12 +596,20 @@
             }
         }
 
-        function addRow(initialExpr = '') {
+        function addRow(initialDesc = '', initialExpr = '') {
             const rowId = rowCounter++;
             const row = document.createElement('tr');
             row.id = `row-${rowId}`;
 
             row.innerHTML = `
+                <td>
+                    <input type="text"
+                           class="expr-input"
+                           id="desc-${rowId}"
+                           placeholder="e.g., Clear bit"
+                           value="${initialDesc}"
+                           style="font-size: 12px;">
+                </td>
                 <td>
                     <input type="text"
                            class="expr-input"
@@ -566,7 +630,7 @@
 
             expressionsBody.appendChild(row);
 
-            // Add event listener
+            // Add event listeners
             const input = document.getElementById(`expr-${rowId}`);
             input.addEventListener('input', () => updateRow(rowId));
 
@@ -591,18 +655,112 @@
             });
         }
 
-        // Initialize with some example rows
-        addRow('x');
-        addRow('x << 1');
-        addRow('x >> 1');
-        addRow('x | 0x80');
-        addRow('(x & (x - 1))');
+        // Initialize with popular bit manipulation hacks from Hacker's Delight
+
+        // === BASIC OPERATIONS ===
+        addRow('Original', 'x');
+        addRow('Left shift', 'x << 1');
+        addRow('Right shift', 'x >> 1');
+        addRow('Bitwise NOT', '~x');
+
+        // === RIGHTMOST BIT TRICKS ===
+        addRow('Clear lowest 1-bit', 'x & (x - 1)');
+        addRow('Isolate lowest 1-bit', 'x & -x');
+        addRow('Fill trailing 0s', 'x | (x - 1)');
+        addRow('Set rightmost 0-bit', 'x | (x + 1)');
+        addRow('Isolate rightmost 0', '~x & (x + 1)');
+        addRow('Clear trailing 1s', '~x | (x - 1)');
+
+        // === PROPAGATION TRICKS ===
+        addRow('Turn off right 1s', '~(x | -x)');
+        addRow('Turn on right 0s', '~(x & -x)');
+        addRow('Isolate lowest 1 (v2)', '(x & (x - 1)) ^ x');
+        addRow('Mask trailing 0s+1', 'x ^ (x - 1)');
+        addRow('Mask trailing 0s', '(x ^ (x - 1)) >> 1');
+
+        // === MASKING & EXTRACTION ===
+        addRow('Extract low byte', 'x & 0xFF');
+        addRow('Extract low word', 'x & 0xFFFF');
+        addRow('Extract 2nd byte', '(x >> 8) & 0xFF');
+        addRow('Set sign bit', 'x | 0x80000000');
+        addRow('Flip all 32 bits', 'x ^ 0xFFFFFFFF');
+
+        // === SIGN & PARITY ===
+        addRow('Get sign bit', '(x >> 31) & 1');
+        addRow('Test odd/even', 'x & 1');
+        addRow('Sign manipulation', 'x ^ (x >> 31)');
+
+        // === POWER OF 2 DETECTION ===
+        addRow('Power of 2 test', 'x & (x - 1)');
+
+        // === ABSOLUTE VALUE ===
+        // Note: The branchless absolute value technique was patented (Israeli patent 125,146)
+        // but the patent expired on September 13, 2010 and is now public domain.
+        // Source: https://graphics.stanford.edu/~seander/bithacks.html
+        addRow('Abs value (no branch)', '(x ^ (x >> 31)) - (x >> 31)');
+        addRow('Abs value mask', 'x >> 31');
+        addRow('Abs value XOR step', 'x ^ (x >> 31)');
+
+        // === SWAP/REVERSE PATTERNS ===
+        addRow('Swap adjacent bits', '((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1)');
+        addRow('Swap 2-bit pairs', '((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2)');
+        addRow('Swap nibbles', '((x & 0xF0F0F0F0) >> 4) | ((x & 0x0F0F0F0F) << 4)');
+
+        // === POPCNT (Population Count - Count Set Bits) ===
+        addRow('POPCNT Step 1', 'x - ((x >> 1) & 0x55555555)');
+        addRow('POPCNT Step 2', '(x & 0x33333333) + ((x >> 2) & 0x33333333)');
+        addRow('POPCNT Step 3', '(x + (x >> 4)) & 0x0F0F0F0F');
+        addRow('POPCNT Step 4', 'x + (x >> 8)');
+        addRow('POPCNT Step 5', 'x + (x >> 16)');
+        addRow('POPCNT Final', '(x + (x >> 16)) & 0x3F');
+        addRow('POPCNT Full 32-bit', '(((((x - ((x >> 1) & 0x55555555)) & 0x33333333) + (((x - ((x >> 1) & 0x55555555)) >> 2) & 0x33333333)) + (((((x - ((x >> 1) & 0x55555555)) & 0x33333333) + (((x - ((x >> 1) & 0x55555555)) >> 2) & 0x33333333)) >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24');
+
+        // === ADVANCED TRICKS ===
+        addRow('Next power of 2 (p1)', 'x - 1');
+        addRow('Next power of 2 (p2)', '(x - 1) | ((x - 1) >> 1)');
+        addRow('Next power of 2 (p3)', '((x - 1) | ((x - 1) >> 1)) | (((x - 1) | ((x - 1) >> 1)) >> 2)');
+        addRow('Two\'s complement', '-x');
+        addRow('Sign extend 8-bit', '(x & 0xFF) | ((x & 0x80) ? 0xFFFFFF00 : 0)');
+        addRow('Sign extend simple', '(x & 0xFF) ^ 0x80');
+        addRow('Average (no ovflow)', '(x & 10) + ((x ^ 10) >> 1)');
+        addRow('Min via bitwise', 'x & ((x - 42) >> 31) | 42 & ~((x - 42) >> 31)');
+        addRow('Set bit N (N=5)', 'x | (1 << 5)');
+        addRow('Clear bit N (N=5)', 'x & ~(1 << 5)');
+        addRow('Toggle bit N (N=5)', 'x ^ (1 << 5)');
+        addRow('Test bit N (N=5)', '(x >> 5) & 1');
+        addRow('Byte swap 16-bit', '((x & 0xFF) << 8) | ((x >> 8) & 0xFF)');
+        addRow('Byte swap 32-bit', '((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x >> 8) & 0xFF00) | ((x >> 24) & 0xFF)');
+
+        // Auto-select appropriate bit width based on x value
+        function autoSelectBitWidth() {
+            const x = parseInt(numberInput.value) || 0;
+            const suggestedWidth = determineBitWidth(x);
+
+            // Set the appropriate radio button
+            document.getElementById(`width${suggestedWidth}`).checked = true;
+            currentBitWidth = suggestedWidth;
+        }
 
         // Update all when number changes
-        numberInput.addEventListener('input', updateAllRows);
+        numberInput.addEventListener('input', () => {
+            autoSelectBitWidth();
+            updateAllRows();
+        });
+
+        // Add event listeners to radio buttons
+        document.querySelectorAll('input[name="bitWidth"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentBitWidth = parseInt(e.target.value);
+                updateAllRows();
+            });
+        });
+
+        // Set initial bit width
+        autoSelectBitWidth();
 
         // Initial update
         updateAllRows();
     </script>
 </body>
+
 </html>
