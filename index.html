@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Byte Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1880px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .section h2 {
+            color: #b0b0b0;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b0b0b0;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #606060;
+        }
+
+        .output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .endian-grid {
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .endian-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1a1a1a;
+        }
+
+        .endian-table th {
+            background: #3a3a3a;
+            color: #e0e0e0;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .endian-table td {
+            padding: 8px;
+            border: 1px solid #404040;
+        }
+
+        .endian-table tr:nth-child(even) {
+            background: #252525;
+        }
+
+        .endian-table .label-col {
+            font-weight: 600;
+            color: #b0b0b0;
+            white-space: nowrap;
+        }
+
+        .endian-table .value-col {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #d0d0d0;
+        }
+
+        .output-item {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #505050;
+        }
+
+        .output-item label {
+            color: #b0b0b0;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .output-item .value {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #d0d0d0;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .output-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Byte Viewer</h1>
+
+        <!-- Section 1: Decimal to Various Formats -->
+        <div class="section">
+            <h2>Decimal Number to Formats</h2>
+            <div class="input-group">
+                <label for="decimalInput">Enter Decimal Number:</label>
+                <input type="number" id="decimalInput" placeholder="e.g., 42 or 3.14159" step="any">
+            </div>
+            <div class="endian-grid">
+                <table class="endian-table">
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Little Endian</th>
+                            <th>Big Endian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label-col">Binary</td>
+                            <td class="value-col" id="binaryLE">-</td>
+                            <td class="value-col" id="binaryBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Octal</td>
+                            <td class="value-col" id="octalLE">-</td>
+                            <td class="value-col" id="octalBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Hexadecimal</td>
+                            <td class="value-col" id="hexLE">-</td>
+                            <td class="value-col" id="hexBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Float32</td>
+                            <td class="value-col" id="float32LE">-</td>
+                            <td class="value-col" id="float32BE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Float64</td>
+                            <td class="value-col" id="float64LE">-</td>
+                            <td class="value-col" id="float64BE">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Byte Sequence to Decimal -->
+        <div class="section">
+            <h2>Byte Sequence to Decimal</h2>
+            <div class="input-group">
+                <label for="byteInput">Enter Byte Sequence (hex bytes):</label>
+                <input type="text" id="byteInput" placeholder="e.g., 42 3F 80 00 or 423F8000 or 0x42, 0x3F, 0x80">
+                <div class="error" id="byteError"></div>
+            </div>
+            <div class="output-item" style="margin-bottom: 15px;">
+                <label>Byte Count:</label>
+                <div class="value" id="byteCount">-</div>
+            </div>
+            <div class="endian-grid">
+                <table class="endian-table">
+                    <thead>
+                        <tr>
+                            <th>Interpretation</th>
+                            <th>Little Endian</th>
+                            <th>Big Endian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label-col">Signed Integer</td>
+                            <td class="value-col" id="signedLE">-</td>
+                            <td class="value-col" id="signedBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Unsigned Integer</td>
+                            <td class="value-col" id="unsignedLE">-</td>
+                            <td class="value-col" id="unsignedBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Float32</td>
+                            <td class="value-col" id="float32DecLE">-</td>
+                            <td class="value-col" id="float32DecBE">-</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">Float64</td>
+                            <td class="value-col" id="float64DecLE">-</td>
+                            <td class="value-col" id="float64DecBE">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Section 1: Decimal to Various Formats
+        const decimalInput = document.getElementById('decimalInput');
+
+        function floatToHex(num, isDouble = false, littleEndian = false) {
+            const buffer = new ArrayBuffer(isDouble ? 8 : 4);
+            const view = new DataView(buffer);
+
+            if (isDouble) {
+                view.setFloat64(0, num, littleEndian);
+            } else {
+                view.setFloat32(0, num, littleEndian);
+            }
+
+            let hex = '';
+            const byteCount = isDouble ? 8 : 4;
+            for (let i = 0; i < byteCount; i++) {
+                hex += view.getUint8(i).toString(16).toUpperCase().padStart(2, '0') + ' ';
+            }
+            return hex.trim();
+        }
+
+        function reverseHexBytes(hexString) {
+            // Split by spaces, reverse array, join back
+            return hexString.split(' ').reverse().join(' ');
+        }
+
+        function updateDecimalConversion() {
+            const value = decimalInput.value;
+
+            const elements = {
+                binaryLE: document.getElementById('binaryLE'),
+                binaryBE: document.getElementById('binaryBE'),
+                octalLE: document.getElementById('octalLE'),
+                octalBE: document.getElementById('octalBE'),
+                hexLE: document.getElementById('hexLE'),
+                hexBE: document.getElementById('hexBE'),
+                float32LE: document.getElementById('float32LE'),
+                float32BE: document.getElementById('float32BE'),
+                float64LE: document.getElementById('float64LE'),
+                float64BE: document.getElementById('float64BE')
+            };
+
+            if (value === '') {
+                Object.values(elements).forEach(el => el.textContent = '-');
+                return;
+            }
+
+            const num = parseFloat(value);
+
+            if (isNaN(num)) {
+                Object.values(elements).forEach(el => el.textContent = 'Invalid number');
+                return;
+            }
+
+            // For integer representations, use the integer part
+            const intNum = Math.trunc(num);
+
+            // Binary - same for both endianness (bit representation)
+            let binaryStr;
+            if (intNum >= 0) {
+                binaryStr = intNum.toString(2);
+            } else {
+                // Show 32-bit two's complement
+                binaryStr = (intNum >>> 0).toString(2);
+            }
+            elements.binaryLE.textContent = binaryStr;
+            elements.binaryBE.textContent = binaryStr;
+
+            // Octal - same for both endianness
+            let octalStr;
+            if (intNum >= 0) {
+                octalStr = intNum.toString(8);
+            } else {
+                octalStr = (intNum >>> 0).toString(8);
+            }
+            elements.octalLE.textContent = octalStr;
+            elements.octalBE.textContent = octalStr;
+
+            // Hexadecimal - same for both endianness
+            let hexStr;
+            if (intNum >= 0) {
+                hexStr = '0x' + intNum.toString(16).toUpperCase();
+            } else {
+                hexStr = '0x' + (intNum >>> 0).toString(16).toUpperCase();
+            }
+            elements.hexLE.textContent = hexStr;
+            elements.hexBE.textContent = hexStr;
+
+            // IEEE-754 Float32
+            elements.float32LE.textContent = floatToHex(num, false, true);
+            elements.float32BE.textContent = floatToHex(num, false, false);
+
+            // IEEE-754 Float64
+            elements.float64LE.textContent = floatToHex(num, true, true);
+            elements.float64BE.textContent = floatToHex(num, true, false);
+        }
+
+        decimalInput.addEventListener('input', updateDecimalConversion);
+
+        // Section 2: Byte Sequence to Decimal
+        const byteInput = document.getElementById('byteInput');
+        const byteCount = document.getElementById('byteCount');
+        const byteError = document.getElementById('byteError');
+
+        function parseByteString(str) {
+            // Remove 0x prefixes and whitespace
+            const cleaned = str.replace(/0x/gi, '').replace(/[\s,]+/g, '').trim();
+            if (!cleaned) return [];
+
+            // Check if it's a valid hex string
+            if (!/^[0-9a-fA-F]+$/.test(cleaned)) {
+                throw new Error(`Invalid hex characters`);
+            }
+
+            // If odd length, pad with leading zero
+            const hexString = cleaned.length % 2 === 1 ? '0' + cleaned : cleaned;
+
+            // Split into byte pairs
+            const bytes = [];
+            for (let i = 0; i < hexString.length; i += 2) {
+                const byteStr = hexString.substring(i, i + 2);
+                const byte = parseInt(byteStr, 16);
+                if (isNaN(byte) || byte < 0 || byte > 255) {
+                    throw new Error(`Invalid byte value: ${byteStr}`);
+                }
+                bytes.push(byte);
+            }
+
+            return bytes;
+        }
+
+        function bytesToDecimal(bytes, interpretation, isLittleEndian) {
+            if (bytes.length === 0) {
+                return null;
+            }
+
+            // Create buffer and view
+            const buffer = new ArrayBuffer(Math.max(8, bytes.length));
+            const view = new DataView(buffer);
+
+            // Write bytes to buffer in little endian order
+            const bytesToWrite = isLittleEndian ? bytes : [...bytes].reverse();
+            for (let i = 0; i < bytesToWrite.length; i++) {
+                view.setUint8(i, bytesToWrite[i]);
+            }
+
+            let result;
+
+            try {
+                switch (interpretation) {
+                    case 'unsigned':
+                        if (bytes.length === 1) {
+                            result = view.getUint8(0);
+                        } else if (bytes.length === 2) {
+                            result = view.getUint16(0, true);
+                        } else if (bytes.length <= 4) {
+                            result = view.getUint32(0, true);
+                        } else if (bytes.length <= 8) {
+                            result = view.getBigUint64(0, true).toString();
+                        } else {
+                            return 'Too many bytes (max 8)';
+                        }
+                        break;
+
+                    case 'signed':
+                        if (bytes.length === 1) {
+                            result = view.getInt8(0);
+                        } else if (bytes.length === 2) {
+                            result = view.getInt16(0, true);
+                        } else if (bytes.length <= 4) {
+                            result = view.getInt32(0, true);
+                        } else if (bytes.length <= 8) {
+                            result = view.getBigInt64(0, true).toString();
+                        } else {
+                            return 'Too many bytes (max 8)';
+                        }
+                        break;
+
+                    case 'float32':
+                        if (bytes.length !== 4) {
+                            return 'Requires 4 bytes';
+                        }
+                        result = view.getFloat32(0, true);
+                        break;
+
+                    case 'float64':
+                        if (bytes.length !== 8) {
+                            return 'Requires 8 bytes';
+                        }
+                        result = view.getFloat64(0, true);
+                        break;
+
+                    default:
+                        return 'Unknown type';
+                }
+            } catch (error) {
+                return 'Error';
+            }
+
+            return result;
+        }
+
+        function updateByteConversion() {
+            const value = byteInput.value.trim();
+
+            const elements = {
+                signedLE: document.getElementById('signedLE'),
+                signedBE: document.getElementById('signedBE'),
+                unsignedLE: document.getElementById('unsignedLE'),
+                unsignedBE: document.getElementById('unsignedBE'),
+                float32DecLE: document.getElementById('float32DecLE'),
+                float32DecBE: document.getElementById('float32DecBE'),
+                float64DecLE: document.getElementById('float64DecLE'),
+                float64DecBE: document.getElementById('float64DecBE')
+            };
+
+            if (value === '') {
+                Object.values(elements).forEach(el => el.textContent = '-');
+                byteCount.textContent = '-';
+                byteError.textContent = '';
+                return;
+            }
+
+            try {
+                const bytes = parseByteString(value);
+                byteError.textContent = '';
+
+                byteCount.textContent = bytes.length + ' byte' + (bytes.length !== 1 ? 's' : '');
+
+                // Update all interpretations for both endianness
+                elements.signedLE.textContent = bytesToDecimal(bytes, 'signed', true);
+                elements.signedBE.textContent = bytesToDecimal(bytes, 'signed', false);
+
+                elements.unsignedLE.textContent = bytesToDecimal(bytes, 'unsigned', true);
+                elements.unsignedBE.textContent = bytesToDecimal(bytes, 'unsigned', false);
+
+                elements.float32DecLE.textContent = bytesToDecimal(bytes, 'float32', true);
+                elements.float32DecBE.textContent = bytesToDecimal(bytes, 'float32', false);
+
+                elements.float64DecLE.textContent = bytesToDecimal(bytes, 'float64', true);
+                elements.float64DecBE.textContent = bytesToDecimal(bytes, 'float64', false);
+
+            } catch (error) {
+                Object.values(elements).forEach(el => el.textContent = 'Error');
+                byteCount.textContent = '-';
+                byteError.textContent = error.message;
+            }
+        }
+
+        byteInput.addEventListener('input', updateByteConversion);
+    </script>
+</body>
+</html>
