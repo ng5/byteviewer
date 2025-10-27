@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bit Fiddling Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 10px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1880px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #e0e0e0;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #b0b0b0;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b0b0b0;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #606060;
+        }
+
+        .expressions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .expressions-table th {
+            background: #3a3a3a;
+            color: #e0e0e0;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            border: 1px solid #404040;
+        }
+
+        .expressions-table td {
+            padding: 8px;
+            border: 1px solid #404040;
+            background: #252525;
+        }
+
+        .expressions-table tr:hover {
+            background: #2a2a2a;
+        }
+
+        .expr-input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #404040;
+            border-radius: 3px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .expr-input:focus {
+            outline: none;
+            border-color: #606060;
+        }
+
+        .binary-output {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #d0d0d0;
+            word-break: break-all;
+            letter-spacing: 1px;
+        }
+
+        .binary-group {
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .decimal-output {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #d0d0d0;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-add {
+            background: #4a4a4a;
+            color: #e0e0e0;
+            margin-right: 10px;
+        }
+
+        .btn-add:hover {
+            background: #5a5a5a;
+        }
+
+        .btn-remove {
+            background: #3a3a3a;
+            color: #ff6b6b;
+            padding: 4px 8px;
+            font-size: 0.85em;
+        }
+
+        .btn-remove:hover {
+            background: #ff6b6b;
+            color: #1a1a1a;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        .error-cell {
+            color: #ff6b6b;
+            font-size: 0.85em;
+        }
+
+        .examples {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+
+        .examples-title {
+            color: #b0b0b0;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .example-item {
+            color: #909090;
+            margin: 3px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .example-code {
+            color: #c0c0c0;
+        }
+
+        .intermediate-steps {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid #404040;
+        }
+
+        .step-row {
+            display: flex;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 11px;
+        }
+
+        .step-label {
+            color: #808080;
+            min-width: 30px;
+            font-style: italic;
+        }
+
+        .step-expr {
+            color: #909090;
+            font-family: 'Courier New', monospace;
+            margin-right: 10px;
+            min-width: 120px;
+        }
+
+        .step-binary {
+            font-family: 'Courier New', monospace;
+            color: #a0a0a0;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .step-decimal {
+            color: #909090;
+            font-family: 'Courier New', monospace;
+            margin-left: 10px;
+            font-size: 11px;
+        }
+
+        .toggle-steps {
+            cursor: pointer;
+            color: #808080;
+            font-size: 0.8em;
+            margin-top: 3px;
+            user-select: none;
+        }
+
+        .toggle-steps:hover {
+            color: #a0a0a0;
+        }
+
+        .step-arrow {
+            color: #606060;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bit Fiddling Playground</h1>
+        <div class="subtitle">Learn Hacker's Delight bit manipulation tricks</div>
+
+        <div class="section">
+            <div class="input-group">
+                <label for="numberInput">Enter Decimal Number (use 'x' in expressions):</label>
+                <input type="number" id="numberInput" placeholder="e.g., 10" value="42">
+            </div>
+
+            <div class="examples">
+                <div class="examples-title">Example Expressions:</div>
+                <div class="example-item"><span class="example-code">x << 1</span> - Left shift (multiply by 2)</div>
+                <div class="example-item"><span class="example-code">x >> 1</span> - Right shift (divide by 2)</div>
+                <div class="example-item"><span class="example-code">x & 0xFF</span> - Mask lower 8 bits</div>
+                <div class="example-item"><span class="example-code">x | 0x80</span> - Set bit 7</div>
+                <div class="example-item"><span class="example-code">x ^ 0xFF</span> - XOR with 0xFF</div>
+                <div class="example-item"><span class="example-code">~x</span> - Bitwise NOT</div>
+                <div class="example-item"><span class="example-code">(x & (x - 1))</span> - Clear lowest set bit</div>
+                <div class="example-item"><span class="example-code">(x & -x)</span> - Isolate lowest set bit</div>
+            </div>
+
+            <table class="expressions-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Expression</th>
+                        <th style="width: 47%;">64-bit Binary Result (Little Endian)</th>
+                        <th style="width: 15%;">Decimal Result</th>
+                        <th style="width: 3%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="expressionsBody">
+                </tbody>
+            </table>
+
+            <div class="controls">
+                <button class="btn btn-add" onclick="addRow()">+ Add Expression</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const numberInput = document.getElementById('numberInput');
+        const expressionsBody = document.getElementById('expressionsBody');
+
+        let rowCounter = 0;
+
+        function formatBinary64(num) {
+            // Convert to 64-bit representation
+            let binary;
+
+            if (num < 0) {
+                // For negative numbers, use two's complement
+                // Convert to unsigned 64-bit
+                const bigNum = BigInt(num);
+                const mask = (1n << 64n) - 1n;
+                binary = (bigNum & mask).toString(2).padStart(64, '0');
+            } else {
+                binary = BigInt(num).toString(2).padStart(64, '0');
+            }
+
+            // Split into groups of 8 for readability
+            let formatted = '';
+            for (let i = 0; i < 64; i += 8) {
+                formatted += `<span class="binary-group">${binary.substring(i, i + 8)}</span>`;
+            }
+
+            return formatted;
+        }
+
+        function evaluateExpression(expr, x) {
+            try {
+                // Sanitize expression - allow only safe characters including hex (a-f)
+                if (!/^[x0-9a-fA-F+\-*\/%&|^~()<>\s]+$/.test(expr)) {
+                    return { error: 'Invalid characters in expression' };
+                }
+
+                // Convert expression to use BigInt
+                // First convert hex literals (0x...), then decimal numbers
+                let convertedExpr = expr
+                    .replace(/0x[0-9a-fA-F]+/g, match => `BigInt(${match})`)  // Convert hex to BigInt
+                    .replace(/\b(\d+)\b/g, 'BigInt($1)')                      // Convert decimal to BigInt
+                    .replace(/\bx\b/g, 'xBig');                               // Replace x with xBig
+
+                // Create a safe evaluation context
+                const safeEval = new Function('x', `
+                    'use strict';
+                    try {
+                        // Convert x to BigInt for operations
+                        const xBig = BigInt(x);
+
+                        // Evaluate the converted expression
+                        const result = ${convertedExpr};
+
+                        // Convert back to number if small enough, otherwise keep as BigInt
+                        if (result >= -(2n**53n) && result <= (2n**53n)) {
+                            return Number(result);
+                        }
+                        return result;
+                    } catch (e) {
+                        return { error: e.message };
+                    }
+                `);
+
+                const result = safeEval(x);
+
+                if (result && typeof result === 'object' && result.error) {
+                    return result;
+                }
+
+                return { value: result };
+            } catch (e) {
+                return { error: e.message };
+            }
+        }
+
+        function extractIntermediateSteps(expr, x) {
+            const steps = [];
+
+            // Always start with x
+            steps.push({ expr: 'x', value: x, description: 'input' });
+
+            // Track unique sub-expressions to avoid duplicates
+            const seen = new Set(['x']);
+
+            // Find all parenthesized sub-expressions recursively
+            const findSubExpressions = (str) => {
+                const subExprs = [];
+                let depth = 0;
+                let start = -1;
+
+                for (let i = 0; i < str.length; i++) {
+                    if (str[i] === '(') {
+                        if (depth === 0) start = i;
+                        depth++;
+                    } else if (str[i] === ')') {
+                        depth--;
+                        if (depth === 0 && start !== -1) {
+                            const subExpr = str.substring(start + 1, i);
+                            if (!seen.has(subExpr) && (subExpr.includes('x') || /[&|^~<>]/.test(subExpr))) {
+                                subExprs.push(subExpr);
+                                seen.add(subExpr);
+                                // Recursively find sub-expressions within this one
+                                subExprs.push(...findSubExpressions(subExpr));
+                            }
+                        }
+                    }
+                }
+                return subExprs;
+            };
+
+            const allSubExprs = findSubExpressions(expr);
+
+            // Sort by complexity (simpler first)
+            allSubExprs.sort((a, b) => {
+                const complexityA = (a.match(/[&|^~<>()]/g) || []).length;
+                const complexityB = (b.match(/[&|^~<>()]/g) || []).length;
+                return complexityA - complexityB;
+            });
+
+            // Evaluate sub-expressions
+            for (const subExpr of allSubExprs) {
+                const result = evaluateExpression(subExpr, x);
+                if (!result.error) {
+                    steps.push({
+                        expr: subExpr,
+                        value: result.value,
+                        description: 'step'
+                    });
+                }
+            }
+
+            // Add final result if different from last step
+            if (!seen.has(expr)) {
+                const result = evaluateExpression(expr, x);
+                if (!result.error) {
+                    steps.push({
+                        expr: expr,
+                        value: result.value,
+                        description: 'final'
+                    });
+                }
+            }
+
+            return steps;
+        }
+
+        function formatBinaryCompact(num) {
+            // Compact binary for intermediate steps - show only 32 bits grouped by 4
+            let binary;
+            const absNum = Math.abs(Number(num));
+
+            if (num < 0) {
+                const bigNum = BigInt(num);
+                const mask = (1n << 64n) - 1n;
+                binary = (bigNum & mask).toString(2).padStart(64, '0');
+            } else {
+                binary = BigInt(num).toString(2).padStart(64, '0');
+            }
+
+            // Show last 32 bits grouped by 4 for readability
+            const last32 = binary.substring(32);
+            let formatted = '';
+            for (let i = 0; i < 32; i += 4) {
+                formatted += last32.substring(i, i + 4) + ' ';
+            }
+
+            return formatted.trim();
+        }
+
+        function updateRow(rowId) {
+            const input = document.getElementById(`expr-${rowId}`);
+            const binaryCell = document.getElementById(`binary-${rowId}`);
+            const decimalCell = document.getElementById(`decimal-${rowId}`);
+
+            const expr = input.value.trim();
+            const x = parseInt(numberInput.value) || 0;
+
+            if (!expr) {
+                binaryCell.innerHTML = '<span style="color: #606060;">-</span>';
+                decimalCell.innerHTML = '<span style="color: #606060;">-</span>';
+                return;
+            }
+
+            const result = evaluateExpression(expr, x);
+
+            if (result.error) {
+                binaryCell.innerHTML = `<span class="error-cell">${result.error}</span>`;
+                decimalCell.innerHTML = '<span class="error-cell">Error</span>';
+            } else {
+                const value = typeof result.value === 'bigint' ? result.value : BigInt(result.value);
+
+                // Main result
+                let html = formatBinary64(Number(value));
+
+                // Add intermediate steps if expression is complex
+                if (expr !== 'x' && (expr.includes('(') || expr.split(/[&|^~<>]/).length > 2)) {
+                    const steps = extractIntermediateSteps(expr, x);
+
+                    if (steps.length > 2) { // More than just input and final
+                        html += `<div class="toggle-steps" onclick="toggleSteps(${rowId})">
+                            <span id="toggle-icon-${rowId}">▼</span> show steps
+                        </div>`;
+                        html += `<div id="steps-${rowId}" class="intermediate-steps" style="display: none;">`;
+
+                        steps.forEach((step, idx) => {
+                            const stepValue = typeof step.value === 'bigint' ? step.value : BigInt(step.value);
+                            const label = step.description === 'input' ? '→' :
+                                        step.description === 'final' ? '=' : '→';
+
+                            html += `<div class="step-row">
+                                <span class="step-arrow">${label}</span>
+                                <span class="step-expr">${step.expr}</span>
+                                <span class="step-binary">${formatBinaryCompact(Number(stepValue))}</span>
+                                <span class="step-decimal">= ${stepValue.toString()}</span>
+                            </div>`;
+                        });
+
+                        html += '</div>';
+                    }
+                }
+
+                binaryCell.innerHTML = html;
+                decimalCell.innerHTML = `<span class="decimal-output">${value.toString()}</span>`;
+            }
+        }
+
+        function toggleSteps(rowId) {
+            const stepsDiv = document.getElementById(`steps-${rowId}`);
+            const icon = document.getElementById(`toggle-icon-${rowId}`);
+
+            if (stepsDiv.style.display === 'none') {
+                stepsDiv.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                stepsDiv.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        }
+
+        function addRow(initialExpr = '') {
+            const rowId = rowCounter++;
+            const row = document.createElement('tr');
+            row.id = `row-${rowId}`;
+
+            row.innerHTML = `
+                <td>
+                    <input type="text"
+                           class="expr-input"
+                           id="expr-${rowId}"
+                           placeholder="e.g., x << 1"
+                           value="${initialExpr}">
+                </td>
+                <td id="binary-${rowId}" class="binary-output">
+                    <span style="color: #606060;">-</span>
+                </td>
+                <td id="decimal-${rowId}" class="decimal-output">
+                    <span style="color: #606060;">-</span>
+                </td>
+                <td style="text-align: center;">
+                    <button class="btn btn-remove" onclick="removeRow(${rowId})">×</button>
+                </td>
+            `;
+
+            expressionsBody.appendChild(row);
+
+            // Add event listener
+            const input = document.getElementById(`expr-${rowId}`);
+            input.addEventListener('input', () => updateRow(rowId));
+
+            // Initial update if expression provided
+            if (initialExpr) {
+                updateRow(rowId);
+            }
+        }
+
+        function removeRow(rowId) {
+            const row = document.getElementById(`row-${rowId}`);
+            if (row) {
+                row.remove();
+            }
+        }
+
+        function updateAllRows() {
+            const rows = expressionsBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const rowId = row.id.replace('row-', '');
+                updateRow(rowId);
+            });
+        }
+
+        // Initialize with some example rows
+        addRow('x');
+        addRow('x << 1');
+        addRow('x >> 1');
+        addRow('x | 0x80');
+        addRow('(x & (x - 1))');
+
+        // Update all when number changes
+        numberInput.addEventListener('input', updateAllRows);
+
+        // Initial update
+        updateAllRows();
+    </script>
+</body>
+</html>
